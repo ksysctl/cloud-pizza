@@ -33,10 +33,13 @@ test('State Machine Created', () => {
       "Fn::Join": [
         "",
         [
-          "{\"StartAt\":\"Order Pizza Job\",\"States\":{\"Order Pizza Job\":{\"Next\":\"With Pineapple?\",\"Retry\":[{\"ErrorEquals\":[\"Lambda.ServiceException\",\"Lambda.AWSLambdaException\",\"Lambda.SdkClientException\"],\"IntervalSeconds\":2,\"MaxAttempts\":6,\"BackoffRate\":2}],\"Type\":\"Task\",\"InputPath\":\"$.flavour\",\"ResultPath\":\"$.pineappleAnalysis\",\"Resource\":\"",
+          "{\"StartAt\":\"Order Pizza Job\",\"States\":{\"Order Pizza Job\":{\"Next\":\"With Pineapple?\",\"Retry\":[{\"ErrorEquals\":[\"Lambda.ServiceException\",\"Lambda.AWSLambdaException\",\"Lambda.SdkClientException\"],\"IntervalSeconds\":2,\"MaxAttempts\":6,\"BackoffRate\":2}],\"Type\":\"Task\",\"InputPath\":\"$\",\"ResultPath\":\"$.order\",\"Resource\":\"",
           {
           },
-          "\"},\"With Pineapple?\":{\"Type\":\"Choice\",\"Choices\":[{\"Variable\":\"$.pineappleAnalysis.containsPineapple\",\"BooleanEquals\":true,\"Next\":\"Sorry, We Dont add Pineapple\"}],\"Default\":\"Lets make your pizza\"},\"Lets make your pizza\":{\"Type\":\"Succeed\",\"OutputPath\":\"$.pineappleAnalysis\"},\"Sorry, We Dont add Pineapple\":{\"Type\":\"Fail\",\"Error\":\"Failed To Make Pizza\",\"Cause\":\"They asked for Pineapple\"}},\"TimeoutSeconds\":300}"
+          "\"},\"With Pineapple?\":{\"Type\":\"Choice\",\"Choices\":[{\"Variable\":\"$.order.containsPineapple\",\"BooleanEquals\":true,\"Next\":\"Sorry, We Dont add Pineapple\"}],\"Default\":\"Cook Pizza Job\"},\"Cook Pizza Job\":{\"Next\":\"Failed\",\"Retry\":[{\"ErrorEquals\":[\"Lambda.ServiceException\",\"Lambda.AWSLambdaException\",\"Lambda.SdkClientException\"],\"IntervalSeconds\":2,\"MaxAttempts\":6,\"BackoffRate\":2}],\"Type\":\"Task\",\"InputPath\":\"$\",\"ResultPath\":\"$.order\",\"Resource\":\"",
+          {
+          },
+          "\"},\"Failed\":{\"Type\":\"Choice\",\"Choices\":[{\"Variable\":\"$.order.failed\",\"BooleanEquals\":true,\"Next\":\"Sorry, Problem Cooking Pizza\"}],\"Default\":\"Deliver your pizza\"},\"Deliver your pizza\":{\"Type\":\"Succeed\",\"OutputPath\":\"$.order\"},\"Sorry, Problem Cooking Pizza\":{\"Type\":\"Fail\",\"Error\":\"Failed To Make Pizza\",\"Cause\":\"Cooking failure\"},\"Sorry, We Dont add Pineapple\":{\"Type\":\"Fail\",\"Error\":\"Failed To Make Pizza\",\"Cause\":\"They asked for Pineapple\"}},\"TimeoutSeconds\":300}"
         ]
       ]
     },

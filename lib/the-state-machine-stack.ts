@@ -20,13 +20,33 @@ export class TheStateMachineStack extends cdk.Stack {
       handler: 'orderPizza.handler'
     });
 
+    //Cook pizza process
+    let cookPizzaLambda = new lambda.Function(this, 'cookPizzaLambdaHandler', {
+      runtime: lambda.Runtime.NODEJS_12_X,
+      code: lambda.Code.fromAsset('lambda-fns'),
+      handler: 'cookPizza.handler'
+    });
+
     // Step functions are built up of steps, we need to define our first step
     const orderPizza = new tasks.LambdaInvoke(this, "Order Pizza Job", {
       lambdaFunction: pineappleCheckLambda,
-      inputPath: '$.flavour',
-      resultPath: '$.pineappleAnalysis',
+      inputPath: '$',
+      resultPath: '$.order',
       payloadResponseOnly: true
     })
+
+    // Step cook function
+    const cookPizza = new tasks.LambdaInvoke(this, "Cook Pizza Job", {
+      lambdaFunction: cookPizzaLambda,
+      inputPath: '$',
+      resultPath: '$.order',
+      payloadResponseOnly: true
+    })
+
+    // Pizza Order success step defined
+    const deliverPizza = new sfn.Succeed(this, 'Deliver your pizza', {
+      outputPath: '$.order'
+    });
 
     // Pizza Order failure step defined
     const pineappleDetected = new sfn.Fail(this, 'Sorry, We Dont add Pineapple', {
@@ -34,18 +54,26 @@ export class TheStateMachineStack extends cdk.Stack {
       error: 'Failed To Make Pizza',
     });
 
-    // If they didnt ask for pineapple let's cook the pizza
-    const cookPizza = new sfn.Succeed(this, 'Lets make your pizza', {
-      outputPath: '$.pineappleAnalysis'
+    // Pizza Cooking failure step defined
+    const cookingFailed = new sfn.Fail(this, 'Sorry, Problem Cooking Pizza', {
+      cause: 'Cooking failure',
+      error: 'Failed To Make Pizza',
     });
-
+    
     //Express Step function definition
     const definition = sfn.Chain
     .start(orderPizza)
     .next(new sfn.Choice(this, 'With Pineapple?') // Logical choice added to flow
         // Look at the "status" field
-        .when(sfn.Condition.booleanEquals('$.pineappleAnalysis.containsPineapple', true), pineappleDetected) // Fail for pineapple
-        .otherwise(cookPizza));
+        .when(sfn.Condition.booleanEquals('$.order.containsPineapple', true), pineappleDetected) // Fail for pineapple
+        .otherwise(
+          cookPizza.next(
+            new sfn.Choice(this, 'Failed') // Logical choice added to flow
+            .when(sfn.Condition.booleanEquals('$.order.failed', true), cookingFailed) // Fail cooking pizza
+            .otherwise(deliverPizza)
+          )
+        )
+    );
 
     let stateMachine = new sfn.StateMachine(this, 'StateMachine', {
       definition,
