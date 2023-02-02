@@ -33,13 +33,21 @@ test('State Machine Created', () => {
       "Fn::Join": [
         "",
         [
-          "{\"StartAt\":\"Order Pizza Job\",\"States\":{\"Order Pizza Job\":{\"Next\":\"With Pineapple?\",\"Retry\":[{\"ErrorEquals\":[\"Lambda.ServiceException\",\"Lambda.AWSLambdaException\",\"Lambda.SdkClientException\"],\"IntervalSeconds\":2,\"MaxAttempts\":6,\"BackoffRate\":2}],\"Type\":\"Task\",\"InputPath\":\"$\",\"ResultPath\":\"$.order\",\"Resource\":\"",
+          "{\"StartAt\":\"Order Pizza Job\",\"States\":{\"Order Pizza Job\":{\"Next\":\"Cook Pizza Job\",\"Retry\":[{\"ErrorEquals\":[\"Lambda.ServiceException\",\"Lambda.AWSLambdaException\",\"Lambda.SdkClientException\"],\"IntervalSeconds\":2,\"MaxAttempts\":6,\"BackoffRate\":2}],\"Catch\":[{\"ErrorEquals\":[\"NotAvailableFlavourError\"],\"Next\":\"Unavailable Flavour Selected\"}],\"Type\":\"Task\",\"InputPath\":\"$\",\"ResultPath\":\"$.order\",\"Resource\":\"",
           {
+            "Fn::GetAtt": [
+              "orderPizzaLambdaHandler58F6696E",
+              "Arn"
+            ]
           },
-          "\"},\"With Pineapple?\":{\"Type\":\"Choice\",\"Choices\":[{\"Variable\":\"$.order.containsPineapple\",\"BooleanEquals\":true,\"Next\":\"Sorry, We Dont add Pineapple\"}],\"Default\":\"Cook Pizza Job\"},\"Cook Pizza Job\":{\"Next\":\"Failed\",\"Retry\":[{\"ErrorEquals\":[\"Lambda.ServiceException\",\"Lambda.AWSLambdaException\",\"Lambda.SdkClientException\"],\"IntervalSeconds\":2,\"MaxAttempts\":6,\"BackoffRate\":2}],\"Type\":\"Task\",\"InputPath\":\"$\",\"ResultPath\":\"$.order\",\"Resource\":\"",
+          "\"},\"Cook Pizza Job\":{\"Next\":\"Failed\",\"Retry\":[{\"ErrorEquals\":[\"Lambda.ServiceException\",\"Lambda.AWSLambdaException\",\"Lambda.SdkClientException\"],\"IntervalSeconds\":2,\"MaxAttempts\":6,\"BackoffRate\":2}],\"Type\":\"Task\",\"InputPath\":\"$\",\"ResultPath\":\"$.order\",\"Resource\":\"",
           {
+            "Fn::GetAtt": [
+              "cookPizzaLambdaHandler1AFD5F5C",
+              "Arn"
+            ]
           },
-          "\"},\"Failed\":{\"Type\":\"Choice\",\"Choices\":[{\"Variable\":\"$.order.failed\",\"BooleanEquals\":true,\"Next\":\"Sorry, Problem Cooking Pizza\"}],\"Default\":\"Deliver your pizza\"},\"Deliver your pizza\":{\"Type\":\"Succeed\",\"OutputPath\":\"$.order\"},\"Sorry, Problem Cooking Pizza\":{\"Type\":\"Fail\",\"Error\":\"Failed To Make Pizza\",\"Cause\":\"Cooking failure\"},\"Sorry, We Dont add Pineapple\":{\"Type\":\"Fail\",\"Error\":\"Failed To Make Pizza\",\"Cause\":\"They asked for Pineapple\"}},\"TimeoutSeconds\":300}"
+          "\"},\"Failed\":{\"Type\":\"Choice\",\"Choices\":[{\"Variable\":\"$.order.failed\",\"BooleanEquals\":true,\"Next\":\"Sorry, Problem Cooking Pizza\"}],\"Default\":\"Deliver your pizza\"},\"Deliver your pizza\":{\"Type\":\"Succeed\",\"OutputPath\":\"$.order\"},\"Sorry, Problem Cooking Pizza\":{\"Type\":\"Fail\",\"Error\":\"Failed To Make Pizza\",\"Cause\":\"Cooking failure\"},\"Unavailable Flavour Selected\":{\"Type\":\"Fail\"}},\"TimeoutSeconds\":300}"
         ]
       ]
     },

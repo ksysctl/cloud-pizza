@@ -1,15 +1,18 @@
+import { ApplicationError } from "./error";
 import { IOrder} from "./order";
-import { Flavours } from "./pizza";
+import { Flavour, Flavours } from "./pizza";
 
 exports.handler = async function(order:IOrder) {
     console.log("Requested Pizza :", JSON.stringify(order, undefined, 2));
-     
-    let containsPineapple = (
-        order?.flavour == Flavours.Pinneapple || order?.flavour == Flavours.Hawaiian
-    ) ? true : false;
+
+    const flavour = <Flavours>order?.flavour;
+    if (Flavour.isNotAvailable(flavour)) {
+        throw new ApplicationError(
+            ApplicationError.Status.NotAvailableFlavourError
+        );
+    }
 
     return {
         ...order,
-        containsPineapple
     }
 }
