@@ -20,6 +20,12 @@ Resources:
   orderPizzaLambdaHandler58F6696E:
     Type: AWS::Lambda::Function
     Properties:
+      Environment:
+        Variables:
+          accountId:
+            Ref: AWS:AccountId
+          region:
+            Ref: AWS:Region
       Code:
         S3Bucket:
           Ref: AssetParameters2af6a884f448bf2ef4363051461155e489de4520b953fb243786a7f2a2ddf642S3BucketE8855DA7

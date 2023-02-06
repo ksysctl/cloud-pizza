@@ -1,5 +1,7 @@
 import * as cdk from '@aws-cdk/core';
 import lambda = require('@aws-cdk/aws-lambda');
+import sns = require('@aws-cdk/aws-sns');
+import subs = require('@aws-cdk/aws-sns-subscriptions');
 import apigw = require('@aws-cdk/aws-apigatewayv2');
 import sfn = require('@aws-cdk/aws-stepfunctions');
 import tasks = require('@aws-cdk/aws-stepfunctions-tasks');
@@ -27,51 +29,75 @@ export class TheStateMachineStack extends cdk.Stack {
       handler: 'cookPizza.handler'
     });
 
+
+    //deliver pizza process
+    let deliverPizzaLambda = new lambda.Function(this, 'deliverPizzaLambdaHandler', {
+      runtime: lambda.Runtime.NODEJS_12_X,
+      code: lambda.Code.fromAsset('lambda-fns'),
+      handler: 'deliverPizza.handler'
+    });
+
+    //Create SNS Topic and subcribe lambda
+    const deliverTopic = new sns.Topic(this, 'sns-topic-deliver', {
+      displayName: 'Deliver SNS Topic',
+      
+    });
+
+    deliverTopic.addSubscription(
+      new subs.LambdaSubscription(deliverPizzaLambda)
+    )
+
+    //Notify pizza delivered
+    const deliverPizza = new tasks.SnsPublish(this, 'Deliver Pizza Job', {
+      topic: deliverTopic,
+      message: sfn.TaskInput.fromJsonPathAt('$.Payload.body'),
+      resultPath: '$.Sns.Message'
+    });
+
     // Step functions are built up of steps, we need to define our first step
     const orderPizza = new tasks.LambdaInvoke(this, "Order Pizza Job", {
       lambdaFunction: orderPizzaLambda,
       inputPath: '$',
-      resultPath: '$.order',
-      payloadResponseOnly: true
+      resultPath: '$'
     })
 
-    // Step cook function
+    //Step cook function
     const cookPizza = new tasks.LambdaInvoke(this, "Cook Pizza Job", {
       lambdaFunction: cookPizzaLambda,
       inputPath: '$',
-      resultPath: '$.order',
-      payloadResponseOnly: true
+      resultPath: '$'
     })
 
-    // Pizza Order success step defined
-    const deliverPizza = new sfn.Succeed(this, 'Deliver your pizza', {
-      outputPath: '$.order'
+    //Pizza Order failure step defined
+    const orderFailed = new sfn.Fail(this, 'Order Failed');
+
+    //Pizza Cooking failure step defined
+    const cookFailed = new sfn.Fail(this, 'Cook Failed');
+
+    //Pizza Order succeed step defined
+    const deliverSucceed = new sfn.Succeed(this, 'Deliver Succeed', {
+      inputPath: '$',
+      outputPath: '$.Payload',    
     });
 
-    // Pizza Order failure step defined
-    const notAvailableFlavours = new sfn.Fail(this, 'Unavailable Flavour elected');
-
-    // Pizza Cooking failure step defined
-    const cookingFailed = new sfn.Fail(this, 'Sorry, Problem Cooking Pizza', {
-      cause: 'Cooking failure',
-      error: 'Failed To Make Pizza',
-    });
-    
     //Express Step function definition
     const definition = sfn.Chain
-    .start(orderPizza.addCatch(notAvailableFlavours, {
-      errors: ['NotAvailableFlavourError']
-    })) // Capture error if unavailable flavour selected
-    .next(  
-      cookPizza.next(
-        new sfn.Choice(this, 'Failed') // Logical choice added to flow
-        .when(
-          sfn.Condition.booleanEquals('$.order.failed', true),
-          cookingFailed
-        ) // Fail cooking pizza
-        .otherwise(deliverPizza)
-      )
-    );
+    .start(orderPizza.addCatch(orderFailed, {
+      errors: [
+        'NotAvailableFlavourError',
+        'InvalidFlavourError',
+        'InvalidQuantityError'
+      ]
+    })) // Capture error if flavour validation failed
+    .next(
+      cookPizza.addCatch(cookFailed, {
+        errors: [
+          'CookingPizzaError'
+        ]
+      })
+    )
+    .next(deliverPizza)
+    .next(deliverSucceed);
 
     let stateMachine = new sfn.StateMachine(this, 'StateMachine', {
       definition,

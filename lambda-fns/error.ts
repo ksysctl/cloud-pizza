@@ -1,6 +1,9 @@
 enum Errors { 
-    NotAvailableFlavourError = <any>"Flavour not available", 
-    CookingPizzaError = <any>"Error cooking pizza"
+    NotAvailableFlavourError = <any>"Flavour not available",
+    InvalidFlavourError = <any>"Flavour invalid", 
+    InvalidQuantityError = <any>"Invalid quantity", 
+    CookingPizzaError = <any>"Error cooking",
+    DeliverPizzaError = <any>"Error delivering"
 }
 
 export class ApplicationError extends Error {

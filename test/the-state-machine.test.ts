@@ -66,7 +66,15 @@ test('Order Pizza Lambda Created', () => {
   // THEN
   expectCDK(stack).to(haveResourceLike("AWS::Lambda::Function", {
     "Handler": "orderPizza.handler"
-  }
-  ));
+  }));
 });
 
+test('Cook Pizza Lambda Created', () => {
+  const app = new cdk.App();
+  // WHEN
+  const stack = new TheStateMachine.TheStateMachineStack(app, 'MyTestStack');
+  // THEN
+  expectCDK(stack).to(haveResourceLike("AWS::Lambda::Function", {
+    "Handler": "cookPizza.handler"
+  }));
+});

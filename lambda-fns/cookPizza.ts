@@ -1,17 +1,20 @@
+import { ApplicationError } from "./error";
 import { IOrder } from "./order";
 
-exports.handler = async function(order:IOrder) {   
+exports.handler = async function(event: any) {   
     console.log("Cooking Pizza :");
 
-    let failed = false;
+    let order: IOrder;
     try {
-        // placeholder cooking process
+        order = <IOrder>JSON.stringify(event.Payload.body);
     } catch (error) {
-        failed = true;
+        throw new ApplicationError(
+            ApplicationError.Status.CookingPizzaError
+        );
     }
 
     return {
-        ...order,
-        failed
+        statusCode: 200,
+        body: order,
     }
 }
